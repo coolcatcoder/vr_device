@@ -322,3 +322,9 @@ const _: () = {
 };
 
 pub const SERVER_TRACKED_DEVICE_PROVIDER_VERSION: &CStr = c"IServerTrackedDeviceProvider_004";
+
+// I don't trust this.
+unsafe extern "C" {
+    #[link_name = "\u{1}_ZN2vrL19k_InterfaceVersionsE"]
+    pub static k_InterfaceVersions: [*const ::std::os::raw::c_char; 13usize];
+}
