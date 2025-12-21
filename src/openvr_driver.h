@@ -3191,7 +3191,9 @@ public:
 	virtual void Cleanup() = 0;
 
 	/** Returns the version of the ITrackedDeviceServerDriver interface used by this driver */
-	virtual const char * const *GetInterfaceVersions() = 0;
+	// virtual const char * const *GetInterfaceVersions() = 0;
+	// Replaced for autocxx to understand.
+	virtual const void *GetInterfaceVersions() = 0;
 
 	/** Allows the driver do to some work in the main loop of the server. */
 	virtual void RunFrame() = 0;
