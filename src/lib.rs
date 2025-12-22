@@ -4,10 +4,11 @@ use std::{ffi::{CStr, CString, c_char}, fs::{File, OpenOptions}, io::Write, ptr:
 
 use autocxx::{moveit::MakeCppStorage, prelude::*, subclass::{CppSubclassDefault, subclass}};
 
-use crate::ffi::vr::EVRInitError;
+use crate::{debugging::log, ffi::vr::EVRInitError};
 
 mod hmd_driver_factory;
 mod device_provider;
+mod debugging;
 
 include_cpp! {
     #include "openvr_driver.h"
@@ -60,28 +61,9 @@ impl ffi::vr::IServerTrackedDeviceProvider_methods for DeviceProvider {
             return error
         }
 
-        std::panic::set_hook(Box::new(|panic_info| {
-            // Everything here must succeed!
-            // We can't panic, as we are the panic hook.
-            let Ok(mut file) = OpenOptions::new().append(true).open("/home/coolcatcoder/Documents/GitHub/vr_device/panic_log") else {
-                return;
-            };
-            let Some(payload) = panic_info.payload_as_str() else {
-                return;
-            };
-            let Some(location) = panic_info.location() else {
-                return;
-            };
+        debugging::set_panic_hook();
 
-            let _ = writeln!(&mut file, "{payload}\n{location}\n");
-        }));
-
-        panic!("Oh no!");
-
-        let mut driver_log = unsafe { UniquePtr::from_raw(ffi::vr::VRDriverLog()) };
-        let message = c"Testing!";
-        unsafe { driver_log.pin_mut().Log(message.as_ptr()) };
-        driver_log.into_raw();
+        log(c"Oh no!");
 
         // Works up to here.
         return EVRInitError::VRInitError_Unknown;
