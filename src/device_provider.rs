@@ -1,11 +1,11 @@
+use std::pin::Pin;
+
+use autocxx::subclass::CppSubclass;
+
 use crate::{
-    DeviceProvider,
-    debugging::{self, log},
-    ffi::vr::{
-        EVRInitError, IServerTrackedDeviceProvider_methods, IVRDriverContext,
-        InitServerDriverContext,
-    },
-    interface_versions::k_InterfaceVersions,
+    DeviceProvider, Hmd, debugging::{self, log}, ffi::vr::{
+        ETrackedDeviceClass, EVRInitError, IServerTrackedDeviceProvider_methods, IVRDriverContext, InitServerDriverContext, VRServerDriverHost
+    }, interface_versions::k_InterfaceVersions
 };
 
 impl IServerTrackedDeviceProvider_methods for DeviceProvider {
@@ -17,18 +17,12 @@ impl IServerTrackedDeviceProvider_methods for DeviceProvider {
 
         debugging::set_panic_hook();
 
-        log(c"Working?");
+        log(c"Hello world!");
 
-        // Works up to here.
-        return EVRInitError::VRInitError_Unknown;
+        self.hmd = Hmd::new_cpp_owned(Hmd {cpp_peer: Default::default()});
 
-        //let context = unsafe { &mut *context };
-
-        // driver log
-        // let driver_log = unsafe { ffi::vr::IVRDriverLog::allocate_uninitialized_cpp_storage() };
-        // let mut driver_log = unsafe { UniquePtr::from_raw(driver_log) };
-        // let message = c"Testing!";
-        // unsafe { driver_log.as_mut().unwrap().Log(message.as_ptr()) };
+        let host = unsafe { Pin::new_unchecked(&mut * VRServerDriverHost()) };
+        unsafe { host.TrackedDeviceAdded(c"HMD".as_ptr(), ETrackedDeviceClass::TrackedDeviceClass_HMD, self.hmd.as_mut_ptr().cast()) };
 
         EVRInitError::VRInitError_None
     }

@@ -3,8 +3,6 @@ use std::io::Write;
 use std::pin::Pin;
 use std::{ffi::CString, fs::OpenOptions};
 
-use cxx::UniquePtr;
-
 use crate::ffi::vr::{IVRDriverLog, VRDriverLog};
 
 pub fn set_panic_hook() {
@@ -34,6 +32,7 @@ pub fn set_panic_hook() {
     }));
 }
 
+#[allow(dead_code)]
 pub trait Log {
     fn log(self, driver_log: Pin<&mut IVRDriverLog>);
 }
@@ -51,8 +50,8 @@ impl Log for &CStr {
     }
 }
 
+#[allow(dead_code)]
 pub fn log(message: impl Log) {
-    let mut driver_log = unsafe { UniquePtr::from_raw(VRDriverLog()) };
-    message.log(driver_log.pin_mut());
-    driver_log.into_raw();
+    let driver_log = unsafe { Pin::new_unchecked(&mut * VRDriverLog()) };
+    message.log(driver_log);
 }
