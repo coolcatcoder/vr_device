@@ -1,6 +1,6 @@
 //#![warn(clippy::pedantic)]
 
-use std::sync::LazyLock;
+use std::{ffi::{CStr, CString, c_char}, fs::{File, OpenOptions}, io::Write, ptr::null, sync::LazyLock};
 
 use autocxx::{moveit::MakeCppStorage, prelude::*, subclass::{CppSubclassDefault, subclass}};
 
@@ -16,14 +16,38 @@ include_cpp! {
     generate!("vr::IServerTrackedDeviceProvider_Version")
     generate!("vr::IServerTrackedDeviceProvider")
     generate!("vr::IVRDriverLog")
+    generate!("vr::VRDriverLog")
     subclass!("vr::IServerTrackedDeviceProvider", DeviceProvider)
 }
 
-// I'll do this by hand if it doesn't work like this.
-unsafe extern "C" {
-    #[link_name = "\u{1}_ZN2vrL19k_InterfaceVersionsE"]
-    pub static k_InterfaceVersions: [*const ::std::os::raw::c_char; 13usize];
-}
+const k_InterfaceVersions: &[*const c_char; 13] = &[
+    IVRSettings_Version.as_ptr(),
+    ITrackedDeviceServerDriver_Version.as_ptr(),
+    IVRDisplayComponent_Version.as_ptr(),
+    IVRDriverDirectModeComponent_Version.as_ptr(),
+    IVRCameraComponent_Version.as_ptr(),
+    IServerTrackedDeviceProvider_Version.as_ptr(),
+    IVRWatchdogProvider_Version.as_ptr(),
+    IVRVirtualDisplay_Version.as_ptr(),
+    IVRDriverManager_Version.as_ptr(),
+    IVRResources_Version.as_ptr(),
+    IVRCompositorPluginProvider_Version.as_ptr(),
+    IVRIPCResourceManagerClient_Version.as_ptr(),
+    null(),
+];
+
+const IVRSettings_Version: &CStr = c"IVRSettings_003";
+const ITrackedDeviceServerDriver_Version: &CStr = c"ITrackedDeviceServerDriver_005";
+const IVRDisplayComponent_Version: &CStr = c"IVRDisplayComponent_003";
+const IVRDriverDirectModeComponent_Version: &CStr = c"IVRDriverDirectModeComponent_009";
+const IVRCameraComponent_Version: &CStr = c"IVRCameraComponent_003";
+const IServerTrackedDeviceProvider_Version: &CStr = c"IServerTrackedDeviceProvider_004";
+const IVRWatchdogProvider_Version: &CStr = c"IVRWatchdogProvider_001";
+const IVRVirtualDisplay_Version: &CStr = c"IVRVirtualDisplay_002";
+const IVRDriverManager_Version: &CStr = c"IVRDriverManager_001";
+const IVRResources_Version: &CStr = c"IVRResources_001";
+const IVRCompositorPluginProvider_Version: &CStr = c"IVRCompositorPluginProvider_001";
+const IVRIPCResourceManagerClient_Version: &CStr = c"IVRIPCResourceManagerClient_002";
 
 #[subclass]
 #[derive(Default)]
@@ -36,18 +60,46 @@ impl ffi::vr::IServerTrackedDeviceProvider_methods for DeviceProvider {
             return error
         }
 
-        // driver log
-        let driver_log = unsafe { ffi::vr::IVRDriverLog::allocate_uninitialized_cpp_storage() };
-        let mut driver_log = unsafe { UniquePtr::from_raw(driver_log) };
+        std::panic::set_hook(Box::new(|panic_info| {
+            // Everything here must succeed!
+            // We can't panic, as we are the panic hook.
+            let Ok(mut file) = OpenOptions::new().append(true).open("/home/coolcatcoder/Documents/GitHub/vr_device/panic_log") else {
+                return;
+            };
+            let Some(payload) = panic_info.payload_as_str() else {
+                return;
+            };
+            let Some(location) = panic_info.location() else {
+                return;
+            };
+
+            let _ = writeln!(&mut file, "{payload}\n{location}\n");
+        }));
+
+        panic!("Oh no!");
+
+        let mut driver_log = unsafe { UniquePtr::from_raw(ffi::vr::VRDriverLog()) };
         let message = c"Testing!";
-        unsafe { driver_log.as_mut().unwrap().Log(message.as_ptr()) };
+        unsafe { driver_log.pin_mut().Log(message.as_ptr()) };
+        driver_log.into_raw();
+
+        // Works up to here.
+        return EVRInitError::VRInitError_Unknown;
+
+        //let context = unsafe { &mut *context };
+
+        // driver log
+        // let driver_log = unsafe { ffi::vr::IVRDriverLog::allocate_uninitialized_cpp_storage() };
+        // let mut driver_log = unsafe { UniquePtr::from_raw(driver_log) };
+        // let message = c"Testing!";
+        // unsafe { driver_log.as_mut().unwrap().Log(message.as_ptr()) };
 
         EVRInitError::VRInitError_None
     }
 
     // Secretly this returns a *const *const c_char
     fn GetInterfaceVersions(&mut self) ->  *const autocxx::c_void {
-        unsafe { k_InterfaceVersions.as_ptr().cast() }
+        k_InterfaceVersions.as_ptr().cast()
     }
 
     fn ShouldBlockStandbyMode(&mut self) -> bool {
