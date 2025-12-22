@@ -1,30 +1,39 @@
-#![warn(clippy::pedantic)]
+//#![warn(clippy::pedantic)]
 
-use std::ffi::{c_char, c_int, c_void};
+use autocxx::{prelude::*, subclass::subclass};
 
-use crate::ffi::weird_HmdDriverFactory;
+use crate::ffi::HmdCpp;
 
-#[cxx::bridge]
-mod ffi {
-    unsafe extern "C++" {
-        include!("vr_device/src/bridge/hmd_driver_factory.h");
+mod debugging;
+mod device_provider;
+mod hmd_driver_factory;
+#[allow(nonstandard_style)]
+mod interface_versions;
+mod hmd;
 
-        type c_void;
-        type c_int;
+include_cpp! {
+    #include "openvr_driver.h"
+    safety!(unsafe)
 
-        unsafe fn weird_HmdDriverFactory(interface_name: *const c_char, return_code: *mut c_int) -> *mut c_void;
-    }
-	extern "Rust" {
-        fn init();
-    }
+    generate!("vr::InitServerDriverContext")
+    generate!("vr::IServerTrackedDeviceProvider_Version")
+    generate!("vr::IServerTrackedDeviceProvider")
+    generate!("vr::IVRDriverLog")
+    generate!("vr::VRDriverLog")
+    generate!("vr::IVRServerDriverHost")
+    generate!("vr::VRServerDriverHost")
+    generate!("vr::ETrackedDeviceClass")
+    generate!("vr::ITrackedDeviceServerDriver")
+
+    subclass!("vr::IServerTrackedDeviceProvider", DeviceProvider)
+    subclass!("vr::ITrackedDeviceServerDriver", Hmd)
 }
 
-#[unsafe(no_mangle)]
-extern "C" fn HmdDriverFactory(interface_name: *const c_char, return_code: *mut c_int) -> *mut c_void
-{
-	unsafe { weird_HmdDriverFactory(interface_name, return_code.cast()).cast() }
+#[subclass]
+pub struct DeviceProvider {
+    hmd: UniquePtr<HmdCpp>,
 }
 
-fn init() {
-
-}
+#[subclass]
+#[derive(Default)]
+pub struct Hmd;

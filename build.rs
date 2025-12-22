@@ -1,11 +1,17 @@
-fn main() {
-    cxx_build::bridge("src/lib.rs")
-        //.file("src/bridge")
-        .file("src/bridge/hmd_driver_factory.cpp")
-        //.std("c++14")
-        .compile("vr_device");
+fn main() -> miette::Result<()> {
+    let include_path = std::path::PathBuf::from("src");
 
-    println!("cargo:rerun-if-changed=src");
-    println!("cargo:rustc-link-search=/home/coolcatcoder/Documents/GitHub/vr_device/libopenvr_api.so");
-    println!("cargo:rustc-link-lib=libopenvr_api.so");
+    // This assumes all your C++ bindings are in main.rs
+    let mut b = autocxx_build::Builder::new("src/lib.rs", [&include_path]).build()?;
+    b.flag_if_supported("-std=c++14").compile("vr_device"); // arbitrary library name, pick anything
+    println!("cargo:rerun-if-changed=src/lib.rs");
+
+    // Tell cargo to look for shared libraries in the specified directory
+    println!("cargo:rustc-link-search=/home/coolcatcoder/Documents/GitHub/vr_device");
+
+    // Tell cargo to tell rustc to link the system bzip2
+    // shared library.
+    println!("cargo:rustc-link-lib=openvr_api");
+
+    Ok(())
 }

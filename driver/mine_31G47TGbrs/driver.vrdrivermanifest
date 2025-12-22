@@ -1,0 +1,10 @@
+{
+    "alwaysActivate": false,
+	"name" : "mine_31G47TGbrs",
+	"directory" : "",
+	"resourceOnly" : false,
+	"hmd_presence" :
+	[
+        "*.*"
+	]
+}
