@@ -3,8 +3,7 @@ fn main() -> miette::Result<()> {
 
     // This assumes all your C++ bindings are in main.rs
     let mut b = autocxx_build::Builder::new("src/lib.rs", [&include_path]).build()?;
-    b.flag_if_supported("-std=c++14")
-     .compile("vr_device"); // arbitrary library name, pick anything
+    b.flag_if_supported("-std=c++14").compile("vr_device"); // arbitrary library name, pick anything
     println!("cargo:rerun-if-changed=src/lib.rs");
 
     // Tell cargo to look for shared libraries in the specified directory

@@ -1,60 +1,52 @@
+use crate::{
+    DeviceProvider,
+    debugging::{self, log},
+    ffi::vr::{
+        EVRInitError, IServerTrackedDeviceProvider_methods, IVRDriverContext,
+        InitServerDriverContext,
+    },
+    interface_versions::k_InterfaceVersions,
+};
 
+impl IServerTrackedDeviceProvider_methods for DeviceProvider {
+    unsafe fn Init(&mut self, context: *mut IVRDriverContext) -> EVRInitError {
+        let error = unsafe { InitServerDriverContext(context) };
+        if error != EVRInitError::VRInitError_None {
+            return error;
+        }
 
-// unsafe extern "C" fn init(
-//         this: *mut ServerTrackedDeviceProvider,
-//         context: *mut crate::bindings::vr_IVRDriverContext,
-//     ) -> VrInitError {        
-//         let error = unsafe { InitServerDriverContext(context.cast()) } as u32;
-//         let error = VrInitError::try_from(0);
+        debugging::set_panic_hook();
 
-//         vr::EVRInitError eError = vr::InitServerDriverContext( pContext );
-//         if ( eError != vr::VRInitError_None ) {
-//             return eError;
-//         }
-//     }
+        log(c"Working?");
 
-// unsafe extern "C" fn cleanup(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) {
-    
-// }
+        // Works up to here.
+        return EVRInitError::VRInitError_Unknown;
 
-// unsafe extern "C" fn get_interface_versions(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) -> *const *const i8 {
-//     unsafe { k_InterfaceVersions.as_ptr() }
-// }
+        //let context = unsafe { &mut *context };
 
-// unsafe extern "C" fn run_frame(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) {
+        // driver log
+        // let driver_log = unsafe { ffi::vr::IVRDriverLog::allocate_uninitialized_cpp_storage() };
+        // let mut driver_log = unsafe { UniquePtr::from_raw(driver_log) };
+        // let message = c"Testing!";
+        // unsafe { driver_log.as_mut().unwrap().Log(message.as_ptr()) };
 
-// }
+        EVRInitError::VRInitError_None
+    }
 
-// unsafe extern "C" fn should_block_standby_mode(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) -> bool {
-//     false
-// }
+    // Secretly this returns a *const *const c_char
+    fn GetInterfaceVersions(&mut self) -> *const autocxx::c_void {
+        k_InterfaceVersions.as_ptr().cast()
+    }
 
-// unsafe extern "C" fn enter_standby(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) {
+    fn ShouldBlockStandbyMode(&mut self) -> bool {
+        false
+    }
 
-// }
+    fn RunFrame(&mut self) {}
 
-// unsafe extern "C" fn leave_standby(
-//     this: *mut ServerTrackedDeviceProvider,
-// ) {
-    
-// }
+    fn EnterStandby(&mut self) {}
 
-// static DEVICE_PROVIDER_VTABLE: ServerTrackedDeviceProviderVtable = ServerTrackedDeviceProviderVtable {
-//     init,
-//     cleanup,
-//     get_interface_versions,
-//     run_frame,
-//     should_block_standby_mode,
-//     enter_standby,
-//     leave_standby,
-// };
+    fn LeaveStandby(&mut self) {}
+
+    fn Cleanup(&mut self) {}
+}
