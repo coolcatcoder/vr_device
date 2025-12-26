@@ -1,11 +1,16 @@
-use std::pin::Pin;
+use std::{pin::Pin, ptr::drop_in_place};
 
 use autocxx::subclass::CppSubclass;
+use cxx::UniquePtr;
 
 use crate::{
-    DeviceProvider, Hmd, debugging::{self, log}, ffi::vr::{
-        ETrackedDeviceClass, EVRInitError, IServerTrackedDeviceProvider_methods, IVRDriverContext, InitServerDriverContext, VRServerDriverHost
-    }, interface_versions::k_InterfaceVersions
+    DeviceProvider, Hmd,
+    debugging::{self, log},
+    ffi::vr::{
+        ETrackedDeviceClass, EVRInitError, IServerTrackedDeviceProvider_methods, IVRDriverContext,
+        InitServerDriverContext, VRServerDriverHost,
+    },
+    interface_versions::k_InterfaceVersions,
 };
 
 impl IServerTrackedDeviceProvider_methods for DeviceProvider {
@@ -19,10 +24,19 @@ impl IServerTrackedDeviceProvider_methods for DeviceProvider {
 
         log(c"Hello world!");
 
-        self.hmd = Hmd::new_cpp_owned(Hmd {cpp_peer: Default::default()});
+        self.hmd = Hmd::new_cpp_owned(Hmd {
+            rendering: UniquePtr::null(),
+            cpp_peer: Default::default(),
+        });
 
-        let host = unsafe { Pin::new_unchecked(&mut * VRServerDriverHost()) };
-        unsafe { host.TrackedDeviceAdded(c"HMD".as_ptr(), ETrackedDeviceClass::TrackedDeviceClass_HMD, self.hmd.as_mut_ptr().cast()) };
+        let host = unsafe { Pin::new_unchecked(&mut *VRServerDriverHost()) };
+        unsafe {
+            host.TrackedDeviceAdded(
+                c"HMD".as_ptr(),
+                ETrackedDeviceClass::TrackedDeviceClass_HMD,
+                self.hmd.as_mut_ptr().cast(),
+            )
+        };
 
         EVRInitError::VRInitError_None
     }
@@ -42,5 +56,8 @@ impl IServerTrackedDeviceProvider_methods for DeviceProvider {
 
     fn LeaveStandby(&mut self) {}
 
-    fn Cleanup(&mut self) {}
+    fn Cleanup(&mut self) {
+        // The destructor won't be called automatically. We must do it manually.
+        unsafe { drop_in_place(self) };
+    }
 }

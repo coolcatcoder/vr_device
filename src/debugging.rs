@@ -52,6 +52,6 @@ impl Log for &CStr {
 
 #[allow(dead_code)]
 pub fn log(message: impl Log) {
-    let driver_log = unsafe { Pin::new_unchecked(&mut * VRDriverLog()) };
+    let driver_log = unsafe { Pin::new_unchecked(&mut *VRDriverLog()) };
     message.log(driver_log);
 }

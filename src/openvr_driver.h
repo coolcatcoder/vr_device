@@ -3073,7 +3073,9 @@ namespace vr
 			// Time in seconds from now that mHmdPose was predicted to.
 			float flHmdPosePredictionTimeInSecondsFromNow;
 		};
-		virtual void SubmitLayer( const SubmitLayerPerEye_t( &perEye )[ 2 ] ) {}
+		//virtual void SubmitLayer( const SubmitLayerPerEye_t( &perEye )[ 2 ] ) {}
+		// Tweaked:
+		virtual void SubmitLayer( const SubmitLayerPerEye_t( &perEyeOne ), const SubmitLayerPerEye_t( &perEyeTwo ) ) {}
 
 		/** Submits queued layers for display. */
 		virtual void Present( vr::SharedTextureHandle_t syncTexture ) {}
